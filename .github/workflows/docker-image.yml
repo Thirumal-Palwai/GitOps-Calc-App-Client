@@ -1,0 +1,41 @@
+name: Docker Image CI
+
+on:
+
+  workflow_dispatch:
+  
+  push:
+    branches: [ "main" ]
+    paths:
+    - 'client/**'
+  
+  pull_request:
+    branches: [ "main" ]
+    paths: 
+    - 'client/**'
+    
+jobs:
+  
+  build:
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    
+    - uses: actions/checkout@v3
+    
+    - name: Login into AWS
+      run:  aws configure set aws_access_key_id "AKIAZSHWKCDQZCNP4M6G" && aws configure set aws_secret_access_key ${{ secrets.AWS_KEY }} && aws configure set region "us-east-1" && aws configure set output "None"
+
+    - name: Login into ECR
+      run: aws ecr-public get-login-password --region us-east-1 | docker login public.ecr.aws/z8c2k6d0 --username AWS --password-stdin
+
+    - name: Generate Build ID
+      run: echo "ID=$(date +%s)" >> $GITHUB_ENV
+    
+    - name: Build the Docker image
+      run: docker build ./client --tag public.ecr.aws/z8c2k6d0/client:0.1.0-image-$ID
+    
+    - name: Push the Docker image
+      run: docker push public.ecr.aws/z8c2k6d0/client:0.1.0-image-$ID
+    
